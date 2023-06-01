@@ -1,3 +1,7 @@
+# Lesson 1 screenshot
+
+<img src="./docs/images/img-lesson1.png" width=1680 alt="lesson one screenshot">
+
 # Substrate Node Template
 
 A fresh [Substrate](https://substrate.io/) node, ready for hacking :rocket:
