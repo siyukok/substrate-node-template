@@ -4685,6 +4685,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-kitties"
+version = "0.0.1"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-poe"
 version = "0.0.1"
 dependencies = [
