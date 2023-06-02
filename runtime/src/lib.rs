@@ -51,6 +51,11 @@ pub use pallet_template;
 /// Import the poe pallet.
 pub use pallet_poe;
 
+/// Import the kitties pallet.
+pub use pallet_kitties;
+
+use pallet_insecure_randomness_collective_flip;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -208,8 +213,8 @@ impl frame_system::Config for Runtime {
 
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
-	type DisabledValidators = ();
 	type MaxAuthorities = ConstU32<32>;
+	type DisabledValidators = ();
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -235,21 +240,21 @@ impl pallet_timestamp::Config for Runtime {
 pub const EXISTENTIAL_DEPOSIT: u128 = 500;
 
 impl pallet_balances::Config for Runtime {
-	type MaxLocks = ConstU32<50>;
-	type MaxReserves = ();
-	type ReserveIdentifier = [u8; 8];
-	/// The type for recording an account's balance.
-	type Balance = Balance;
 	/// The ubiquitous event type.
 	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+	/// The type for recording an account's balance.
+	type Balance = Balance;
 	type DustRemoval = ();
 	type ExistentialDeposit = ConstU128<EXISTENTIAL_DEPOSIT>;
 	type AccountStore = System;
-	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
-	type FreezeIdentifier = ();
-	type MaxFreezes = ();
+	type ReserveIdentifier = [u8; 8];
 	type HoldIdentifier = ();
+	type FreezeIdentifier = ();
+	type MaxLocks = ConstU32<50>;
+	type MaxReserves = ();
 	type MaxHolds = ();
+	type MaxFreezes = ();
 }
 
 parameter_types! {
@@ -278,8 +283,19 @@ impl pallet_template::Config for Runtime {
 
 /// Configure the pallet-poe in pallets/poe.
 impl pallet_poe::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type MaxClaimLength = ();
+	type RuntimeEvent = RuntimeEvent;
+}
+
+/// Configure the pallet-kitties in pallets/kitties.
+impl pallet_kitties::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = pallet_kitties::weights::SubstrateWeight<Runtime>;
+	type Randomness = RandomnessCollective;
+}
+
+impl pallet_insecure_randomness_collective_flip::Config for Runtime {
+
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -301,6 +317,9 @@ construct_runtime!(
 		TemplateModule: pallet_template,
 		// Include the custom logic from the pallet-poe in the runtime.
 		PoeModule: pallet_poe,
+		// Include the custom logic from the pallet-kitties in the runtime.
+		KittiesModule: pallet_kitties,
+        RandomnessCollective: pallet_insecure_randomness_collective_flip
 	}
 );
 
