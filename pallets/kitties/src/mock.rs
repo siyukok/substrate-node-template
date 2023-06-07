@@ -1,5 +1,6 @@
 use crate as pallet_kitties;
 use frame_support::traits::{ConstU16, ConstU64, ConstU32};
+use frame_support::PalletId;
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
@@ -51,10 +52,17 @@ impl frame_system::Config for Test {
     type MaxConsumers = ConstU32<16>;
 }
 
+frame_support::parameter_types! {
+    pub const MockPalletId: PalletId = PalletId(*b"mockpall");
+}
+
 impl pallet_kitties::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
     type Randomness = Randomness;
+    type Currency = ();
+    type KittyPrice = ();
+    type PalletId = MockPalletId;
 }
 
 impl pallet_insecure_randomness_collective_flip::Config for Test {
