@@ -95,27 +95,25 @@ fn check_version_works() {
     assert_ne!(v0_1, v1);
 }
 
-// #[test]
-// fn sale_kitty_works(){
-//     new_test_ext().execute_with(|| {
-//         let kitty_id = 0;
-//         let account_id = 1;
-//         let price = 100;
-//         assert_eq!(KittiesModule::next_kitty_id(), kitty_id);
-//         assert_ok!(KittiesModule::create(RuntimeOrigin::signed(account_id)));
-//         assert_eq!(KittiesModule::kitty_owner(kitty_id), Some(account_id));
-//         assert_ok!(KittiesModule::sale(RuntimeOrigin::signed(account_id), kitty_id, price));
-//         System::assert_last_event(Event::KittySale
-//         {
-//             who: account_id,
-//             kitty_id,
-//             price,
-//         }.into());
-//         assert_eq!(KittiesModule::kitty_owner(kitty_id), Some(account_id));
-//         assert_eq!(KittiesModule::kitty_price(kitty_id), Some(price));
-//         assert_noop!(
-//             KittiesModule::sale(RuntimeOrigin::signed(9999), kitty_id, price),
-//             Error::<Test>::NotKittyOwner
-//         );
-//     })
-// }
+#[test]
+fn sale_kitty_works(){
+    new_test_ext().execute_with(|| {
+        let kitty_id = 0;
+        let account_id = 1;
+        let price = 5_000;
+        assert_eq!(KittiesModule::next_kitty_id(), kitty_id);
+        assert_ok!(KittiesModule::create(RuntimeOrigin::signed(account_id),DEFAULT_KITTY_NAME));
+        assert_eq!(KittiesModule::kitty_owner(kitty_id), Some(account_id));
+
+        assert_ok!(KittiesModule::sale(RuntimeOrigin::signed(account_id), kitty_id));
+
+        System::assert_last_event(Event::KittyOnSale
+        {
+            who: account_id,
+            kitty_id,
+            price,
+        }.into());
+        assert_eq!(KittiesModule::kitty_on_sale(kitty_id), Some(price));
+        assert_noop!(KittiesModule::sale(RuntimeOrigin::signed(account_id), kitty_id),Error::<Test>::KittyOnSale);
+    })
+}
