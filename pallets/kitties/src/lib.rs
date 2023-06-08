@@ -114,7 +114,7 @@ pub mod pallet {
         pub fn create(origin: OriginFor<T>, name: [u8; 8]) -> DispatchResult {
             let who = ensure_signed(origin)?;
             let kitty_id = Self::get_next_id()?;
-            let kitty = Kitty{
+            let kitty = Kitty {
                 dna: Self::random_value(&who),
                 name,
             };
@@ -131,7 +131,7 @@ pub mod pallet {
 
         #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::do_something())]
-        pub fn breed(origin: OriginFor<T>, kitty_id_1: KittyId, kitty_id_2: KittyId,name:[u8;8]) -> DispatchResult {
+        pub fn breed(origin: OriginFor<T>, kitty_id_1: KittyId, kitty_id_2: KittyId, name: [u8; 8]) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
             ensure!(kitty_id_1!=kitty_id_2,Error::<T>::SameKittyId);
@@ -149,7 +149,7 @@ pub mod pallet {
                 data[i] = (kitty_1.dna[i] & selector[i]) | (kitty_2.dna[i] & !selector[i]);
             }
 
-            let kitty = Kitty{
+            let kitty = Kitty {
                 dna: data,
                 name,
             };
@@ -190,7 +190,7 @@ pub mod pallet {
             let owner = Self::kitty_owner(kitty_id).ok_or(Error::<T>::InvalidKittyId)?;
             ensure!(owner==who,Error::<T>::NotKittyOwner);
 
-            ensure!(Self::kitty_on_sale(kitty_id).is_some(),Error::<T>::KittyOnSale);
+            ensure!(!KittyOnSale::<T>::contains_key(kitty_id),Error::<T>::KittyOnSale);
 
             let price = T::KittyPrice::get();
             <KittyOnSale<T>>::insert(kitty_id, &price);
