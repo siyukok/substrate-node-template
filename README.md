@@ -9,6 +9,10 @@
 <img src="./docs/images/img-lesson2-3.png" width=1680 alt="lesson one screenshot">
 <img src="./docs/images/img-lesson2-4.png" width=1680 alt="lesson one screenshot">
 
+# Lesson 3 screenshot
+
+<img src="./docs/images/img-lesson3.png" width=1680 alt="lesson one screenshot">
+
 # Substrate Node Template
 
 A fresh [Substrate](https://substrate.io/) node, ready for hacking :rocket:
