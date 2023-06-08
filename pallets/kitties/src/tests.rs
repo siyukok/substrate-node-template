@@ -96,11 +96,11 @@ fn check_version_works() {
 }
 
 #[test]
-fn sale_kitty_works(){
+fn sale_kitty_works() {
     new_test_ext().execute_with(|| {
         let kitty_id = 0;
         let account_id = 1;
-        let price = 5_000;
+        let price = 0;
         assert_eq!(KittiesModule::next_kitty_id(), kitty_id);
         assert_ok!(KittiesModule::create(RuntimeOrigin::signed(account_id),DEFAULT_KITTY_NAME));
         assert_eq!(KittiesModule::kitty_owner(kitty_id), Some(account_id));
@@ -115,5 +115,42 @@ fn sale_kitty_works(){
         }.into());
         assert_eq!(KittiesModule::kitty_on_sale(kitty_id), Some(price));
         assert_noop!(KittiesModule::sale(RuntimeOrigin::signed(account_id), kitty_id),Error::<Test>::KittyOnSale);
+    })
+}
+
+#[test]
+fn buy_kitty_works() {
+    new_test_ext().execute_with(|| {
+        let kitty_id = 0;
+        let account_id_seller = 1;
+        let account_id_buyer = 2;
+        let price = 0;
+        assert_eq!(KittiesModule::next_kitty_id(), kitty_id);
+        assert_ok!(KittiesModule::create(RuntimeOrigin::signed(account_id_seller),DEFAULT_KITTY_NAME));
+        assert_eq!(KittiesModule::kitty_owner(kitty_id), Some(account_id_seller));
+
+        assert_noop!(KittiesModule::buy(RuntimeOrigin::signed(account_id_seller), kitty_id),Error::<Test>::AlreadyIsKittyOwner);
+
+        assert_noop!(KittiesModule::buy(RuntimeOrigin::signed(account_id_buyer), kitty_id),Error::<Test>::KittyNotOnSale);
+
+        assert_ok!(KittiesModule::sale(RuntimeOrigin::signed(account_id_seller), kitty_id));
+
+        System::assert_last_event(Event::KittyOnSale
+        {
+            who: account_id_seller,
+            kitty_id,
+            price,
+        }.into());
+
+        assert_eq!(KittiesModule::kitty_on_sale(kitty_id), Some(price));
+
+        assert_ok!(KittiesModule::buy(RuntimeOrigin::signed(account_id_buyer), kitty_id));
+        System::assert_last_event(Event::KittyBought
+        {
+            who: account_id_buyer,
+            kitty_id,
+        }.into());
+
+        assert_eq!(KittiesModule::kitty_owner(kitty_id), Some(account_id_buyer));
     })
 }
