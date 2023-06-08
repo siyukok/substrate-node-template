@@ -4,7 +4,7 @@ use frame_support::{
     traits::GetStorageVersion,
     weights::Weight,
 };
-use frame_system::pallet_prelude::*;
+
 use frame_support::{migration::storage_key_iter, Blake2_128Concat};
 
 use crate::{Config, Pallet, Kitties, KittyId};
