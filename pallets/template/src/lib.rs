@@ -109,6 +109,20 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_finalize(_n: BlockNumberFor<T>) {
+            log::info!("OCW ==> on_finalize!");
+        }
+
+        fn on_idle(_n: BlockNumberFor<T>, _remaining_weight: Weight) -> Weight {
+            log::info!("OCW ==> on_idle!");
+            Weight::from_parts(0, 0)
+        }
+
+        fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
+            log::info!("OCW ==> on_initialize!");
+            Weight::from_parts(0, 0)
+        }
+
         fn offchain_worker(block_number: T::BlockNumber) {
             log::info!("OCW ==> Hello from offchain workers!: {:?}", block_number);
         }
