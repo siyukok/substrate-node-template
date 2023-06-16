@@ -13,13 +13,22 @@ mod tests;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
+
 pub mod weights;
 
 pub use weights::*;
 
+use sp_runtime::{
+    offchain::{
+        storage::StorageValueRef,
+    },
+    traits::Zero,
+};
+
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+    use frame_support::inherent::Vec;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
 
@@ -125,12 +134,40 @@ pub mod pallet {
 
         fn offchain_worker(block_number: T::BlockNumber) {
             log::info!("OCW ==> Hello from offchain workers!: {:?}", block_number);
+            if block_number % 2u32.into() != Zero::zero() {
+                let key = Self::derive_key(block_number);
+                let val_ref = StorageValueRef::persistent(&key);
 
-            let timeout = sp_io::offchain::timestamp()
-                .add(sp_runtime::offchain::Duration::from_millis(8_000));
+                let random_slice = sp_io::offchain::random_seed();
 
-            sp_io::offchain::sleep_until(timeout);
-            log::info!("OCW ==> Leave from offchain workers!: {:?}", block_number);
+                let timestamp_u64 = sp_io::offchain::timestamp().unix_millis();
+
+                let value = (random_slice, timestamp_u64);
+                log::info!("OCW ==> in odd block,Going to write value {:?} to key {:?}", value, key);
+                val_ref.set(&value);
+            } else {
+                let key = Self::derive_key(block_number - 1u32.into());
+                let mut val_ref = StorageValueRef::persistent(&key);
+
+                if let Ok(Some(value)) = val_ref.get::<([u8; 32], u64)>() {
+                    log::info!("OCW ==> in even block,Read value {:?} from key {:?}", value, key);
+                    val_ref.clear();
+                }
+            }
+            log::info!("OCW ==> Leave from offchain workers! {:?} ", block_number);
+        }
+    }
+
+    impl<T: Config> Pallet<T> {
+        #[deny(clippy::clone_double_ref)]
+        fn derive_key(block_number: T::BlockNumber) -> Vec<u8> {
+            block_number.using_encoded(|encoded_bn| {
+                b"node-template::storage::"
+                    .iter()
+                    .chain(encoded_bn)
+                    .copied()
+                    .collect::<Vec<u8>>()
+            })
         }
     }
 }
