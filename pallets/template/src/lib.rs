@@ -125,6 +125,12 @@ pub mod pallet {
 
         fn offchain_worker(block_number: T::BlockNumber) {
             log::info!("OCW ==> Hello from offchain workers!: {:?}", block_number);
+
+            let timeout = sp_io::offchain::timestamp()
+                .add(sp_runtime::offchain::Duration::from_millis(8_000));
+
+            sp_io::offchain::sleep_until(timeout);
+            log::info!("OCW ==> Leave from offchain workers!: {:?}", block_number);
         }
     }
 }
