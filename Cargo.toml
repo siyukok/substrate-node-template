@@ -3,7 +3,6 @@ members = [
     "node",
     "pallets/template",
     "pallets/poe",
-    "pallets/kitties",
     "runtime",
 ]
 [profile.release]
