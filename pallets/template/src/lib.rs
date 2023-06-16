@@ -20,10 +20,11 @@ pub use weights::*;
 
 use sp_runtime::{
     offchain::{
-        storage::{MutateStorageError, StorageRetrievalError, StorageValueRef},
+        http, Duration,
     },
-    traits::Zero,
 };
+
+use serde::{Deserialize, Deserializer};
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -31,6 +32,37 @@ pub mod pallet {
     use frame_support::inherent::Vec;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
+
+    #[derive(Deserialize, Encode, Decode)]
+    struct GithubInfo {
+        #[serde(deserialize_with = "de_string_to_bytes")]
+        login: Vec<u8>,
+        #[serde(deserialize_with = "de_string_to_bytes")]
+        blog: Vec<u8>,
+        public_repos: u32,
+    }
+
+    pub fn de_string_to_bytes<'de, D>(de: D) -> Result<Vec<u8>, D::Error>
+        where
+            D: Deserializer<'de>,
+    {
+        let s: &str = Deserialize::deserialize(de)?;
+        Ok(s.as_bytes().to_vec())
+    }
+
+    use core::{convert::TryInto, fmt};
+
+    impl fmt::Debug for GithubInfo {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(
+                f,
+                "{{ login: {}, blog: {}, public_repos: {} }}",
+                sp_std::str::from_utf8(&self.login).map_err(|_| fmt::Error)?,
+                sp_std::str::from_utf8(&self.blog).map_err(|_| fmt::Error)?,
+                &self.public_repos
+            )
+        }
+    }
 
     #[pallet::pallet]
     pub struct Pallet<T>(_);
@@ -134,63 +166,40 @@ pub mod pallet {
 
         fn offchain_worker(block_number: T::BlockNumber) {
             log::info!("OCW ==> Hello from offchain workers!: {:?}", block_number);
-            if block_number % 2u32.into() != Zero::zero() {
-                let key = Self::derive_key(block_number);
-                let val_ref = StorageValueRef::persistent(&key);
-
-                let random_slice = sp_io::offchain::random_seed();
-
-                let timestamp_u64 = sp_io::offchain::timestamp().unix_millis();
-
-                let value: ([u8; 32], u64) = (random_slice, timestamp_u64);
-                log::info!("OCW ==> in odd block,Going to write value {:?} to key {:?}", value, key);
-
-                struct StateError;
-
-                let res = val_ref.mutate(
-                    |val: Result<Option<([u8; 32], u64)>, StorageRetrievalError>| ->
-                    Result<_, StateError> {
-                        match val {
-                            Ok(Some(_)) => {
-                                log::info!("OCW ==> in odd block,key {:?} already exist", key);
-                            }
-                            _ => {
-                                log::info!("OCW ==> in odd block,key {:?} does not exist", key);
-                            }
-                        }
-                        Ok(value)
-                    });
-
-                match res {
-                    Ok(value) => {
-                        log::info!("OCW ==> in odd block,mutate value {:?} to key {:?} successful", value, key);
-                    }
-                    Err(MutateStorageError::ValueFunctionFailed(_)) => (),
-                    Err(MutateStorageError::ConcurrentModification(_)) => (),
-                }
+            if let Ok(info) = Self::fetch_github_info() {
+                log::info!("OCW ==> Github Info: {:?}", info);
             } else {
-                let key = Self::derive_key(block_number - 1u32.into());
-                let mut val_ref = StorageValueRef::persistent(&key);
-
-                if let Ok(Some(value)) = val_ref.get::<([u8; 32], u64)>() {
-                    log::info!("OCW ==> in even block,Read value {:?} from key {:?}", value, key);
-                    val_ref.clear();
-                }
+                log::info!("OCW ==> Error while fetch github info!");
             }
             log::info!("OCW ==> Leave from offchain workers! {:?} ", block_number);
         }
     }
 
     impl<T: Config> Pallet<T> {
-        #[deny(clippy::clone_double_ref)]
-        fn derive_key(block_number: T::BlockNumber) -> Vec<u8> {
-            block_number.using_encoded(|encoded_bn| {
-                b"node-template::storage::"
-                    .iter()
-                    .chain(encoded_bn)
-                    .copied()
-                    .collect::<Vec<u8>>()
-            })
+        fn fetch_github_info() -> Result<GithubInfo, http::Error> {
+            // prepare for send request
+            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(8_000));
+            let request =
+                http::Request::get("https://api.github.com/orgs/substrate-developer-hub");
+            let pending = request
+                .add_header("User-Agent", "Substrate-Offchain-Worker")
+                .deadline(deadline).send().map_err(|_| http::Error::IoError)?;
+            let response = pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
+            if response.code != 200 {
+                log::warn!("Unexpected status code: {}", response.code);
+                return Err(http::Error::Unknown)
+            }
+            let body = response.body().collect::<Vec<u8>>();
+            let body_str = sp_std::str::from_utf8(&body).map_err(|_| {
+                log::warn!("No UTF8 body");
+                http::Error::Unknown
+            })?;
+
+            // parse the response str
+            let gh_info: GithubInfo =
+                serde_json::from_str(body_str).map_err(|_| http::Error::Unknown)?;
+
+            Ok(gh_info)
         }
     }
 }
