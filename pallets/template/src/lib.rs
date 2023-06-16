@@ -20,7 +20,7 @@ pub use weights::*;
 
 use sp_runtime::{
     offchain::{
-        storage::StorageValueRef,
+        storage::{MutateStorageError, StorageRetrievalError, StorageValueRef},
     },
     traits::Zero,
 };
@@ -142,9 +142,32 @@ pub mod pallet {
 
                 let timestamp_u64 = sp_io::offchain::timestamp().unix_millis();
 
-                let value = (random_slice, timestamp_u64);
+                let value: ([u8; 32], u64) = (random_slice, timestamp_u64);
                 log::info!("OCW ==> in odd block,Going to write value {:?} to key {:?}", value, key);
-                val_ref.set(&value);
+
+                struct StateError;
+
+                let res = val_ref.mutate(
+                    |val: Result<Option<([u8; 32], u64)>, StorageRetrievalError>| ->
+                    Result<_, StateError> {
+                        match val {
+                            Ok(Some(_)) => {
+                                log::info!("OCW ==> in odd block,key {:?} already exist", key);
+                            }
+                            _ => {
+                                log::info!("OCW ==> in odd block,key {:?} does not exist", key);
+                            }
+                        }
+                        Ok(value)
+                    });
+
+                match res {
+                    Ok(value) => {
+                        log::info!("OCW ==> in odd block,mutate value {:?} to key {:?} successful", value, key);
+                    }
+                    Err(MutateStorageError::ValueFunctionFailed(_)) => (),
+                    Err(MutateStorageError::ConcurrentModification(_)) => (),
+                }
             } else {
                 let key = Self::derive_key(block_number - 1u32.into());
                 let mut val_ref = StorageValueRef::persistent(&key);
