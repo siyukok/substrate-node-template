@@ -13,6 +13,26 @@
 
 <img src="./docs/images/img-lesson3.png" width=1680 alt="lesson one screenshot">
 
+# Lesson 4
+### Q:链上随机数和链下随机数的区别?
+### A:链上随机数即Config::Randomness::random_seed()并不是传统意义上真正的随机数，由于在区块链上运行的应用程序受到更严格的约束，因为网络中的所有权威机构必须就任何链上价值达成一致，包括注入的任何随机性数据。由于这种限制，所以不适合在区块链应用程序中直接使用真正的随机性。对于区块链应用，提供随机性的最常见方法是一种称为可验证随机函数的加密原语。可验证随机函数（verifiable random function）是一种数学运算，它接受输入并产生一个随机数，并证明该随机数是由提交者生成的。任何挑战者都可以验证该证明，以确保随机数生成是有效的。而链下随机数即sp_io::offchain::random_seed()则是由宿主环境生成的非确定性的真正随机数
+
+### Q:使用Offchain indexing 特性实现从链上向Offchain Storage写数据
+#### 存
+<img src="./docs/images/img-lesson4-1.png" width=1508 alt="lesson one screenshot">
+
+#### 取
+<img src="./docs/images/img-lesson4-2.png" width=1680 alt="lesson one screenshot">
+
+### Q:使用js sdk从浏览器frontend获取到前面写入Offchain Storage的数据
+<img src="./docs/images/img-lesson4-3.png" width=1508 alt="lesson one screenshot">
+
+### Q:设计一个场景实例，实现从OCW向链上发起带签名负载的不签名交易，并在Runtime中正确处理
+
+### A:OCW中获取GitHub Info，获取成功，发起带签名负载的不签名交易，将repos数量传递给Runtime并输出
+
+<img src="./docs/images/img-lesson4-4.png" width=1680 alt="lesson one screenshot">
+
 # Substrate Node Template
 
 A fresh [Substrate](https://substrate.io/) node, ready for hacking :rocket:

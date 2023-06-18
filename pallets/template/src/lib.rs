@@ -17,6 +17,19 @@ pub mod weights;
 
 pub use weights::*;
 
+use sp_io::offchain_index;
+
+const ONCHAIN_TX_KEY: &[u8] = b"template_pallet::indexing";
+
+use sp_runtime::{
+    offchain::{
+        storage::{StorageValueRef},
+        http, Duration,
+    },
+    transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction},
+    RuntimeDebug,
+};
+
 use frame_system::{
     offchain::{
         AppCrypto, CreateSignedTransaction, SendUnsignedTransaction,
@@ -24,12 +37,13 @@ use frame_system::{
     },
 };
 
-use sp_runtime::{
-    transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction},
-    RuntimeDebug,
-};
-use codec::{Decode, Encode};
+use core::str;
+use serde::{Deserialize, Deserializer};
+use codec::{Encode, Decode};
+use frame_support::inherent::Vec;
 
+#[derive(Debug, Deserialize, Encode, Decode, Default)]
+struct IndexingData(Vec<u8>, u64);
 
 use sp_core::crypto::KeyTypeId;
 
@@ -49,8 +63,8 @@ pub mod crypto {
 
     impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
         type RuntimeAppPublic = Public;
-        type GenericSignature = sp_core::sr25519::Signature;
         type GenericPublic = sp_core::sr25519::Public;
+        type GenericSignature = sp_core::sr25519::Signature;
     }
 
     // implemented for mock runtime in test
@@ -58,18 +72,16 @@ pub mod crypto {
     for TestAuthId
     {
         type RuntimeAppPublic = Public;
-        type GenericSignature = sp_core::sr25519::Signature;
         type GenericPublic = sp_core::sr25519::Public;
+        type GenericSignature = sp_core::sr25519::Signature;
     }
 }
-
 
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
-
 
     #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
     pub struct Payload<Public> {
@@ -83,12 +95,42 @@ pub mod pallet {
         }
     }
 
+    // github
+    #[derive(Deserialize, Encode, Decode)]
+    struct GithubInfo {
+        #[serde(deserialize_with = "de_string_to_bytes")]
+        login: Vec<u8>,
+        #[serde(deserialize_with = "de_string_to_bytes")]
+        blog: Vec<u8>,
+        public_repos: u32,
+    }
+
+    pub fn de_string_to_bytes<'de, D>(de: D) -> Result<Vec<u8>, D::Error>
+        where
+            D: Deserializer<'de>,
+    {
+        let s: &str = Deserialize::deserialize(de)?;
+        Ok(s.as_bytes().to_vec())
+    }
+
+    use core::{convert::TryInto, fmt};
+    impl fmt::Debug for GithubInfo {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(
+                f,
+                "{{ login: {}, blog: {}, public_repos: {} }}",
+                sp_std::str::from_utf8(&self.login).map_err(|_| fmt::Error)?,
+                sp_std::str::from_utf8(&self.blog).map_err(|_| fmt::Error)?,
+                &self.public_repos
+            )
+        }
+    }
+
     #[pallet::pallet]
     pub struct Pallet<T>(_);
 
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
-    // pub trait Config: frame_system::Config + frame_system::offchain::SendTransactionTypes<Call<Self>> {
     pub trait Config: frame_system::Config + CreateSignedTransaction<Call<Self>> {
         /// The identifier type for an offchain worker.
         type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
@@ -171,6 +213,18 @@ pub mod pallet {
 
         #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::do_something())]
+        pub fn extrinsic(_origin: OriginFor<T>, number: u64) -> DispatchResult {
+            let block_number = frame_system::Pallet::<T>::block_number();
+            let key = Self::derived_key(block_number);
+
+            log::info!("Pallet =====> call extrinsic blocknumber is {:?}.", &block_number);
+            let data = IndexingData(b"submit_number_unsigned".to_vec(), number);
+            offchain_index::set(&key, &data.encode());
+            Ok(())
+        }
+
+        #[pallet::call_index(3)]
+        #[pallet::weight(T::WeightInfo::do_something())]
         pub fn unsigned_extrinsic_with_signed_payload(origin: OriginFor<T>, payload: Payload<T::Public>, _signature: T::Signature) -> DispatchResult {
             ensure_none(origin)?;
 
@@ -220,41 +274,80 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        /// Offchain worker entry point.
-        fn offchain_worker(_block_number: T::BlockNumber) {
-            // let value: u64 = 42;
-            // // This is your call to on-chain extrinsic together with any necessary parameters.
-            // let call = Call::submit_data_unsigned { key: value };
+        fn offchain_worker(block_number: T::BlockNumber) {
+            log::info!("Pallet =====> OCW Hello {:?}.", &block_number);
+            let key = Self::derived_key(block_number);
+            log::info!("Pallet =====> OCW Hello Key {:?}.", str::from_utf8(&key).unwrap_or("error"));
+            let storage_ref = StorageValueRef::persistent(&key);
 
-            // // `submit_unsigned_transaction` returns a type of `Result<(), ()>`
-            // //	 ref: https://paritytech.github.io/substrate/master/frame_system/offchain/struct.SubmitTransaction.html
-            // _ = SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into())
-            // 	.map_err(|_| {
-            // 	log::error!("OCW ==> Failed in offchain_unsigned_tx");
-            // });
-
-            let number: u64 = 42;
-            // Retrieve the signer to sign the payload
-            let signer = Signer::<T, T::AuthorityId>::any_account();
-
-            // `send_unsigned_transaction` is returning a type of `Option<(Account<T>, Result<(), ()>)>`.
-            //	 The returned result means:
-            //	 - `None`: no account is available for sending transaction
-            //	 - `Some((account, Ok(())))`: transaction is successfully sent
-            //	 - `Some((account, Err(())))`: error occurred when sending the transaction
-            if let Some((_, res)) = signer.send_unsigned_transaction(
-                // this line is to prepare and return payload
-                |acct| Payload { number, public: acct.public.clone() },
-                |payload, signature| Call::unsigned_extrinsic_with_signed_payload { payload, signature },
-            ) {
-                match res {
-                    Ok(()) => { log::info!("OCW ==> unsigned tx with signed payload successfully sent."); }
-                    Err(()) => { log::error!("OCW ==> sending unsigned tx with signed payload failed."); }
-                };
+            if let Ok(Some(data)) = storage_ref.get::<IndexingData>() {
+                log::info!("Pallet =====> OCW local storage data: {:?}, {:?}",str::from_utf8(&data.0).unwrap_or("error"), data.1);
             } else {
-                // The case of `None`: no account is available for sending
-                log::error!("OCW ==> No local account available");
+                log::info!("Pallet =====> OCW Error reading from local storage.");
+            }
+
+            log::info!("Pallet =====> OCW fetch then call unsigned_extrinsic_with_signed_payload.");
+            if let Ok(info) = Self::fetch_github_info() {
+                log::info!("OCW ==> Github Info: {:?}", info);
+                let number: u64 = info.public_repos as u64;
+                // Retrieve the signer to sign the payload
+                let signer = Signer::<T, T::AuthorityId>::any_account();
+
+                if let Some((_, res)) = signer.send_unsigned_transaction(
+                    // this line is to prepare and return payload
+                    |acct| Payload { number, public: acct.public.clone() },
+                    |payload, signature| Call::unsigned_extrinsic_with_signed_payload { payload, signature },
+                ) {
+                    match res {
+                        Ok(()) => { log::info!("OCW ==> unsigned tx with signed payload successfully sent."); }
+                        Err(()) => { log::error!("OCW ==> sending unsigned tx with signed payload failed."); }
+                    };
+                } else {
+                    // The case of `None`: no account is available for sending
+                    log::error!("OCW ==> No local account available");
+                }
+            } else {
+                log::info!("OCW ==> Error while fetch github info!");
             }
         }
     }
+
+    impl<T: Config> Pallet<T> {
+        fn derived_key(block_number: T::BlockNumber) -> Vec<u8> {
+            block_number.using_encoded(|encoded_bn| {
+                ONCHAIN_TX_KEY.clone().into_iter()
+                    .chain(b"/".into_iter())
+                    .chain(encoded_bn)
+                    .copied()
+                    .collect::<Vec<u8>>()
+            })
+        }
+
+        fn fetch_github_info() -> Result<GithubInfo, http::Error> {
+            // prepare for send request
+            let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(8_000));
+            let request =
+                http::Request::get("https://api.github.com/orgs/substrate-developer-hub");
+            let pending = request
+                .add_header("User-Agent", "Substrate-Offchain-Worker")
+                .deadline(deadline).send().map_err(|_| http::Error::IoError)?;
+            let response = pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
+            if response.code != 200 {
+                log::warn!("Unexpected status code: {}", response.code);
+                return Err(http::Error::Unknown)
+            }
+            let body = response.body().collect::<Vec<u8>>();
+            let body_str = sp_std::str::from_utf8(&body).map_err(|_| {
+                log::warn!("No UTF8 body");
+                http::Error::Unknown
+            })?;
+
+            // parse the response str
+            let gh_info: GithubInfo =
+                serde_json::from_str(body_str).map_err(|_| http::Error::Unknown)?;
+
+            Ok(gh_info)
+        }
+    }
 }
+

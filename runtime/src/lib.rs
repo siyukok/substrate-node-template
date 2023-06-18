@@ -330,9 +330,9 @@ impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
 
 /// Configure the pallet-template in pallets/template.
 impl pallet_template::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = pallet_template::weights::SubstrateWeight<Runtime>;
 	type AuthorityId = pallet_template::crypto::TestAuthId;
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = pallet_template::weights::SubstrateWeight<Runtime>;
 }
 
 /// Configure the pallet-poe in pallets/poe.
