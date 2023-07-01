@@ -1,3 +1,46 @@
+# Lesson 1 screenshot
+
+<img src="./docs/images/img-lesson1.png" width=1680 alt="lesson one screenshot">
+
+# Lesson 2 screenshot
+
+<img src="./docs/images/img-lesson2-1.png" width=1680 alt="lesson one screenshot">
+<img src="./docs/images/img-lesson2-2.png" width=1680 alt="lesson one screenshot">
+<img src="./docs/images/img-lesson2-3.png" width=1680 alt="lesson one screenshot">
+<img src="./docs/images/img-lesson2-4.png" width=1680 alt="lesson one screenshot">
+
+# Lesson 3 screenshot
+
+<img src="./docs/images/img-lesson3.png" width=1680 alt="lesson one screenshot">
+
+# Lesson 4
+### Q:链上随机数和链下随机数的区别?
+### A:链上随机数即Config::Randomness::random_seed()并不是传统意义上真正的随机数，由于在区块链上运行的应用程序受到更严格的约束，因为网络中的所有权威机构必须就任何链上价值达成一致，包括注入的任何随机性数据。由于这种限制，所以不适合在区块链应用程序中直接使用真正的随机性。对于区块链应用，提供随机性的最常见方法是一种称为可验证随机函数的加密原语。可验证随机函数（verifiable random function）是一种数学运算，它接受输入并产生一个随机数，并证明该随机数是由提交者生成的。任何挑战者都可以验证该证明，以确保随机数生成是有效的。而链下随机数即sp_io::offchain::random_seed()则是由宿主环境生成的非确定性的真正随机数
+
+### Q:使用Offchain indexing 特性实现从链上向Offchain Storage写数据
+#### 存
+<img src="./docs/images/img-lesson4-1.png" width=1508 alt="lesson one screenshot">
+
+#### 取
+<img src="./docs/images/img-lesson4-2.png" width=1680 alt="lesson one screenshot">
+
+### Q:使用js sdk从浏览器frontend获取到前面写入Offchain Storage的数据
+<img src="./docs/images/img-lesson4-3.png" width=1508 alt="lesson one screenshot">
+
+### Q:设计一个场景实例，实现从OCW向链上发起带签名负载的不签名交易，并在Runtime中正确处理
+
+### A:OCW中获取GitHub Info，获取成功，发起带签名负载的不签名交易，将repos数量传递给Runtime并输出
+
+<img src="./docs/images/img-lesson4-4.png" width=1680 alt="lesson one screenshot">
+
+# Lesson 6
+### benchmark for pallet-poe
+<img src="./docs/images/img-lesson6-1.png" width=1680 alt="lesson one screenshot">
+<img src="./docs/images/img-lesson6-2.png" width=1680 alt="lesson one screenshot">
+
+
+
+
 # Substrate Node Template
 
 A fresh [Substrate](https://substrate.io/) node, ready for hacking :rocket:
@@ -5,14 +48,14 @@ A fresh [Substrate](https://substrate.io/) node, ready for hacking :rocket:
 A standalone version of this template is available for each release of Polkadot in the [Substrate Developer Hub Parachain Template](https://github.com/substrate-developer-hub/substrate-parachain-template/) repository.
 The parachain template is generated directly at each Polkadot release branch from the [Node Template in Substrate](https://github.com/paritytech/substrate/tree/master/bin/node-template) upstream
 
-It is usually best to use the stand-alone version to start a new project.
+It is usually best to use the standalone version to start a new project.
 All bugs, suggestions, and feature requests should be made upstream in the [Substrate](https://github.com/paritytech/substrate/tree/master/bin/node-template) repository.
 
 ## Getting Started
 
 Depending on your operating system and Rust version, there might be additional packages required to compile this template.
-Check the [Install](https://docs.substrate.io/install/) instructions for your platform for the most common dependencies.
-Alternatively, you can use one of the [alternative installation](#alternatives-installations) options.
+Check the [installation](https://docs.substrate.io/install/) instructions for your platform for the most common dependencies.
+Alternatively, you can use one of the [alternative installation](#alternative-installations) options.
 
 ### Build
 
@@ -63,7 +106,6 @@ Development chains:
 - Use the **Alice** account as the default `sudo` account.
 - Are preconfigured with a genesis state (`/node/src/chain_spec.rs`) that includes several prefunded development accounts.
 
-
 To persist chain state between runs, specify a base path by running a command similar to the following:
 
 ```sh
@@ -112,14 +154,12 @@ Take special note of the following:
 
 - [`chain_spec.rs`](./node/src/chain_spec.rs): A [chain specification](https://docs.substrate.io/build/chain-spec/) is a source code file that defines a Substrate chain's initial (genesis) state.
   Chain specifications are useful for development and testing, and critical when architecting the launch of a production chain.
-  Take note of the `development_config` and `testnet_genesis` functions,.
+  Take note of the `development_config` and `testnet_genesis` functions.
   These functions are used to define the genesis state for the local development chain configuration.
   These functions identify some [well-known accounts](https://docs.substrate.io/reference/command-line-tools/subkey/) and use them to configure the blockchain's initial state.
 - [`service.rs`](./node/src/service.rs): This file defines the node implementation.
   Take note of the libraries that this file imports and the names of the functions it invokes.
   In particular, there are references to consensus-related topics, such as the [block finalization and forks](https://docs.substrate.io/fundamentals/consensus/#finalization-and-forks) and other [consensus mechanisms](https://docs.substrate.io/fundamentals/consensus/#default-consensus-models) such as Aura for block authoring and GRANDPA for finality.
-
-
 
 ### Runtime
 
@@ -147,9 +187,33 @@ A FRAME pallet is compromised of a number of blockchain primitives:
 - Errors: When a dispatchable fails, it returns an error.
 - Config: The `Config` configuration interface is used to define the types and parameters upon which a FRAME pallet depends.
 
-## Alternatives Installations
+## Alternative Installations
 
 Instead of installing dependencies and building this source directly, consider the following alternatives.
+
+### CI
+
+#### Binary
+
+Check the [CI release workflow](./.github/workflows/release.yml) to see how the binary is built on CI.
+You can modify the compilation targets depending on your needs.
+
+Allow GitHub actions in your forked repository to build the binary for you.
+
+Push a tag. For example, `v0.1.1`. Based on [Semantic Versioning](https://semver.org/), the supported tag format is `v?MAJOR.MINOR.PATCH(-PRERELEASE)?(+BUILD_METADATA)?` (the leading "v", pre-release version, and build metadata are optional and the optional prefix is also supported).
+
+After the pipeline is finished, you can download the binary from the releases page.
+
+#### Container
+
+Check the [CI release workflow](./.github/workflows/release.yml) to see how the Docker image is built on CI.
+
+Add your `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` secrets or other organization settings to your forked repository.
+Change the `DOCKER_REPO` variable in the workflow to `[your DockerHub registry name]/[image name]`.
+
+Push a tag.
+
+After the image is built and pushed, you can pull it with `docker pull <DOCKER_REPO>:<tag>`.
 
 ### Nix
 
