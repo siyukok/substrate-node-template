@@ -43,6 +43,9 @@ node-local.json
 
 node-local-raw.json
 
+### spec for live
+
+in progress. Orz
 
 # Substrate Node Template
 
