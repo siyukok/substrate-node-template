@@ -38,7 +38,10 @@
 <img src="./docs/images/img-lesson6-1.png" width=1680 alt="lesson one screenshot">
 <img src="./docs/images/img-lesson6-2.png" width=1680 alt="lesson one screenshot">
 
+### local spec
+node-local.json
 
+node-local-raw.json
 
 
 # Substrate Node Template
